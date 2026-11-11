@@ -1828,6 +1828,31 @@ jobs:
             } >> "$LOG_FILE"
             exit "$BUILD_STATUS"
 
+      - name: 修补 KPM (Patch KPM)
+        if: inputs.use_kpm
+        working-directory: ${{ env.KERNEL_ROOT }}
+        run: |
+          if [ "${{ inputs.android_version }}" == "android12" ] || [ "${{ inputs.android_version }}" == "android13" ]; then
+            SRC_DIR="out/${{ inputs.android_version }}-${{ inputs.kernel_version }}/dist"
+          else
+            SRC_DIR="bazel-bin/common/kernel_aarch64"
+          fi
+
+          cd "$SRC_DIR"
+          
+          echo "正在下载 patch_linux 工具..."
+          wget -q -O patch_linux https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU_patch/main/kpm/patch_linux
+          chmod +x patch_linux
+          
+          echo "正在修补 Image..."
+          ./patch_linux
+          
+          echo "替换原 Image..."
+          rm -f Image
+          mv oImage Image
+          
+          echo "修补完成！"
+          
       - name: 整理编译失败日志
         if: ${{ always() && steps.compile_kernel.outcome == 'failure' }}
         env:
