@@ -1753,7 +1753,22 @@ jobs:
               fi
             fi
           fi
-          
+
+      - name: 修复 SukiSU policydb 编译错误 (5.10)
+        working-directory: ${{ env.KERNEL_ROOT }}/common
+        run: |
+          TARGET_FILE="drivers/kernelsu/selinux/rules.c"
+          if [ -f "$TARGET_FILE" ]; then
+            echo "修补 $TARGET_FILE 中的 policydb 引用..."
+            # 将 policydb-> 替换为 ((struct policydb *)policydb)-> 以强制类型转换
+            sed -i 's/policydb->latest_granting/((struct policydb *)policydb)->latest_granting/g' "$TARGET_FILE"
+            echo "修补完成，检查修改："
+            grep "latest_granting" "$TARGET_FILE"
+          else
+            echo "::error::找不到 $TARGET_FILE，无法修补"
+            exit 1
+          fi
+
       - name: 编译内核
         id: compile_kernel
         uses: nick-fields/retry@v4
